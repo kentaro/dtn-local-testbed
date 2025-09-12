@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: leo-satellite
+  namespace: dtn-lab
+  labels:
+    node-type: satellite
+    orbit: leo
+spec:
+  selector:
+    app: dtn7
+    node: satellite
+  ports:
+    - name: mtcp
+      port: 4224
+      targetPort: 4224
+    - name: rest
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leo-satellite
+  namespace: dtn-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtn7
+      node: satellite
+  template:
+    metadata:
+      labels:
+        app: dtn7
+        node: satellite
+        location: "leo-orbit-400km"
+    spec:
+      containers:
+      - name: dtn7
+        image: busybox:latest
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "[LEO-SAT] Low Earth Orbit Satellite DTN Node starting..."
+            echo "[LEO-SAT] Altitude: 400km | Orbital Period: 90min"
+            echo "[LEO-SAT] Node ID: dtn://leo-sat-01/"
+            
+            # Simulate orbital dynamics
+            orbit_counter=0
+            while true; do
+              orbit_counter=$((orbit_counter + 1))
+              echo "[LEO-SAT] Orbit #$orbit_counter - Position: $(( (orbit_counter * 30) % 360 ))° | Time: $(date)"
+              
+              # Simulate visibility windows (every 3rd cycle = in range of lunar base)
+              if [ $((orbit_counter % 3)) -eq 0 ]; then
+                echo "[LEO-SAT] ✓ Lunar base in communication range"
+              else
+                echo "[LEO-SAT] ✗ Lunar base out of range (Earth obstruction)"
+              fi
+              
+              sleep 30
+            done
+        ports:
+        - containerPort: 4224
+          name: mtcp
+        - containerPort: 8080
+          name: rest
+        volumeMounts:
+        - name: storage
+          mountPath: /store
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: storage
+        emptyDir: {}

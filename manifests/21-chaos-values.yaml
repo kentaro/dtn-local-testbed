@@ -1,0 +1,13 @@
+chaosDaemon:
+  runtime: docker
+  socketPath: /var/run/docker.sock
+
+dashboard:
+  create: true
+  
+controllerManager:
+  enableFilterNamespace: false
+  
+webhook:
+  certManager:
+    enabled: false

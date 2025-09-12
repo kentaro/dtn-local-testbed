@@ -1,0 +1,155 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lunar-base
+  namespace: dtn-lab
+  labels:
+    node-type: lunar-base
+    location: moon
+spec:
+  selector:
+    app: dtn7
+    node: lunar-base
+  ports:
+    - name: mtcp
+      port: 4224
+      targetPort: 4224
+    - name: rest
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lunar-base
+  namespace: dtn-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dtn7
+      node: lunar-base
+  template:
+    metadata:
+      labels:
+        app: dtn7
+        node: lunar-base
+        location: "mare-tranquillitatis"
+    spec:
+      containers:
+      - name: dtn7
+        image: busybox:latest
+        command: ["/bin/sh"]
+        args:
+          - -c
+          - |
+            echo "[LUNAR-BASE] Tranquility Base DTN Node initializing..."
+            echo "[LUNAR-BASE] Location: Mare Tranquillitatis (0.67°N, 23.47°E)"
+            echo "[LUNAR-BASE] Distance from Earth: ~384,400 km"
+            echo "[LUNAR-BASE] Node ID: dtn://lunar-base-alpha/"
+            echo "seq,sent_epoch_s,recv_epoch_s,e2e_delay_s,signal_strength" > /metrics/delivery_metrics.csv
+            
+            # Simulate telemetry data reception from satellite
+            seq=0
+            visibility_window=0
+            
+            while true; do
+              visibility_window=$((visibility_window + 1))
+              
+              # Simulate realistic visibility and signal quality
+              # Only 30% of the time we have good visibility
+              visibility_chance=$((RANDOM % 100))
+              
+              if [ $visibility_chance -lt 40 ]; then
+                signal_quality=$((RANDOM % 100))
+                
+                if [ $signal_quality -gt 70 ]; then
+                  echo "[LUNAR-BASE] ✓ Satellite acquired - GOOD signal (${signal_quality}%)"
+                elif [ $signal_quality -gt 40 ]; then
+                  echo "[LUNAR-BASE] ⚠ Satellite acquired - WEAK signal (${signal_quality}%)"
+                else
+                  echo "[LUNAR-BASE] ✗ Satellite visible but signal too weak (${signal_quality}%)"
+                  sleep 30
+                  continue
+                fi
+                
+                # Receive burst of telemetry during visibility window
+                for i in 1 2 3; do
+                  seq=$((seq + 1))
+                  recv_epoch_s=$(date +%s)
+                  # Realistic delays with high variability
+                  # Base: 1.3s light speed + 0.5-2s processing/queuing
+                  base_delay=$((1 + RANDOM % 3))
+                  jitter=$((RANDOM % 2))
+                  equipment_delay=$((RANDOM % 3))
+                  
+                  # Random packet drops (20% chance)
+                  if [ $((RANDOM % 100)) -lt 20 ]; then
+                    echo "[LUNAR-BASE] ✗ Packet #$seq LOST - No ACK sent"
+                    continue
+                  fi
+                  
+                  sent_epoch_s=$((recv_epoch_s - base_delay - jitter - equipment_delay))
+                  e2e_delay_s=$((base_delay + jitter + equipment_delay))
+                  
+                  # Signal strength varies wildly
+                  if [ $signal_quality -gt 70 ]; then
+                    signal_strength=$((70 + RANDOM % 30))
+                  else
+                    signal_strength=$((30 + RANDOM % 40))
+                  fi
+                  
+                  echo "$seq,$sent_epoch_s,$recv_epoch_s,$e2e_delay_s,$signal_strength" >> /metrics/delivery_metrics.csv
+                  echo "[LUNAR-BASE] Telemetry packet #$seq received"
+                  echo "  └─ E2E Delay: ${e2e_delay_s}s | Signal: ${signal_strength}%"
+                  echo "  └─ Content: Orbital data, Earth observations, system health"
+                  
+                  if [ $seq -ge 10 ]; then
+                    echo "[LUNAR-BASE] Initial telemetry batch complete"
+                    break 2
+                  fi
+                  sleep 1
+                done
+              else
+                # Various reasons for no signal
+                reason=$((RANDOM % 4))
+                case $reason in
+                  0) echo "[LUNAR-BASE] ✗ No satellites in range - Earth obstruction" ;;
+                  1) echo "[LUNAR-BASE] ✗ Signal blocked - Lunar terrain shadow" ;;
+                  2) echo "[LUNAR-BASE] ✗ Communication blackout - Solar storm interference" ;;
+                  3) echo "[LUNAR-BASE] ✗ Antenna malfunction - Recalibrating..." ;;
+                esac
+              fi
+              
+              sleep 30
+            done
+            
+            # Continue lunar operations
+            while true; do
+              echo "[LUNAR-BASE] Sol $(date +%j) - Systems nominal | Time: $(date)"
+              echo "[LUNAR-BASE] Next satellite pass in: $((90 - (visibility_window * 30) % 90)) seconds"
+              sleep 30
+            done
+        ports:
+        - containerPort: 4224
+          name: mtcp
+        - containerPort: 8080
+          name: rest
+        volumeMounts:
+        - name: storage
+          mountPath: /store
+        - name: metrics
+          mountPath: /metrics
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: storage
+        emptyDir: {}
+      - name: metrics
+        emptyDir: {}

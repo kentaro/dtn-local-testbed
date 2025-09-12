@@ -1,0 +1,38 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: space-comm-delay
+  namespace: dtn-lab
+  labels:
+    scenario: earth-moon-communication
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - dtn-lab
+    labelSelectors:
+      app: dtn7
+      node: satellite
+  delay:
+    latency: "1300ms"  # Earth-Moon light speed delay (384,400km)
+    correlation: "40"   # Burst errors common in space
+    jitter: "500ms"     # Atmospheric, ionospheric, equipment drift
+  loss:
+    loss: "8"          # 8% loss: cosmic rays, solar wind, equipment
+    correlation: "25"  # Losses often come in bursts
+  corrupt:
+    corrupt: "3"       # 3% bit errors from radiation
+    correlation: "20"
+  duplicate:
+    duplicate: "2"     # 2% duplicate packets from retransmissions
+  direction: to
+  target:
+    mode: one
+    selector:
+      namespaces:
+        - dtn-lab
+      labelSelectors:
+        app: dtn7
+        node: lunar-base
+  duration: "30m"  # Extended duration for space operations

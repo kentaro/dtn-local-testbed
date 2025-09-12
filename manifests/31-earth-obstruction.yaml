@@ -1,0 +1,26 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: earth-obstruction
+  namespace: dtn-lab
+  labels:
+    scenario: orbital-blackout
+spec:
+  action: partition
+  mode: all
+  selector:
+    namespaces:
+      - dtn-lab
+    labelSelectors:
+      app: dtn7
+      node: satellite
+  direction: both
+  target:
+    mode: all
+    selector:
+      namespaces:
+        - dtn-lab
+      labelSelectors:
+        app: dtn7
+        node: lunar-base
+  duration: "45m"  # Simulates Earth blocking direct communication

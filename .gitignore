@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project specific
+results/*.csv
+results/delivery_metrics_*.csv
+results/latest_metrics.csv
+results/plots/*.png
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Helm
+charts/
+*.tgz
