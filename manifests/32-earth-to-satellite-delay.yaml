@@ -1,0 +1,33 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: earth-to-satellite-delay
+  namespace: dtn-lab
+  labels:
+    scenario: earth-leo-communication
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - dtn-lab
+    labelSelectors:
+      app: dtn
+      node: earth-station
+  delay:
+    latency: "50ms"     # Earth to LEO satellite (400km altitude)
+    correlation: "20"   
+    jitter: "10ms"      # Atmospheric turbulence
+  loss:
+    loss: "2"           # Minimal loss for LEO
+    correlation: "10"
+  direction: to
+  target:
+    mode: one
+    selector:
+      namespaces:
+        - dtn-lab
+      labelSelectors:
+        app: dtn
+        node: satellite
+  duration: "30m"

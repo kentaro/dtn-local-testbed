@@ -12,7 +12,7 @@ spec:
     namespaces:
       - dtn-lab
     labelSelectors:
-      app: dtn7
+      app: dtn
       node: satellite
   delay:
     latency: "1300ms"  # Earth-Moon light speed delay (384,400km)
@@ -33,6 +33,6 @@ spec:
       namespaces:
         - dtn-lab
       labelSelectors:
-        app: dtn7
+        app: dtn
         node: lunar-base
   duration: "30m"  # Extended duration for space operations

@@ -8,13 +8,13 @@ metadata:
     location: earth
 spec:
   selector:
-    app: dtn7
+    app: dtn
     node: earth-station
   ports:
-    - name: mtcp
-      port: 4224
-      targetPort: 4224
-    - name: rest
+    - name: dtn
+      port: 4556
+      targetPort: 4556
+    - name: metrics
       port: 8080
       targetPort: 8080
   type: ClusterIP
@@ -28,95 +28,38 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dtn7
+      app: dtn
       node: earth-station
   template:
     metadata:
       labels:
-        app: dtn7
+        app: dtn
         node: earth-station
         location: "goldstone-dsn"
     spec:
       containers:
-      - name: dtn7
-        image: busybox:latest
-        command: ["/bin/sh"]
-        args:
-          - -c
-          - |
-            echo "[EARTH-DSN] Deep Space Network Ground Station initializing..."
-            echo "[EARTH-DSN] Location: Goldstone Complex, California"
-            echo "[EARTH-DSN] Coordinates: 35.4°N, 116.9°W"
-            echo "[EARTH-DSN] Equipment: 70m antenna, 20kW transmitter"
-            echo "[EARTH-DSN] Node ID: dtn://earth-dsn-goldstone/"
-            echo ""
-            
-            # Initialize telemetry queue
-            mkdir -p /telemetry
-            echo "timestamp,type,destination,status" > /telemetry/uplink_log.csv
-            
-            # Main operation loop
-            seq_num=0
-            while true; do
-              current_time=$(date +%s)
-              
-              # Simulate telemetry generation and uplink
-              if [ $((seq_num % 10)) -eq 0 ]; then
-                echo "[EARTH-DSN] ===== Telemetry Uplink Window ====="
-                
-                # Generate different types of commands
-                for i in 1 2 3; do
-                  seq_num=$((seq_num + 1))
-                  
-                  case $((seq_num % 5)) in
-                    0) cmd_type="ORBIT_CORRECTION"
-                       data="ΔV=1.2m/s,burn_duration=45s" ;;
-                    1) cmd_type="SCIENCE_DATA_REQUEST"
-                       data="instruments=camera,spectrometer,magnetometer" ;;
-                    2) cmd_type="SYSTEM_STATUS_QUERY"
-                       data="subsystems=power,thermal,attitude" ;;
-                    3) cmd_type="SOFTWARE_UPDATE"
-                       data="patch=v2.3.1,size=4.2MB" ;;
-                    4) cmd_type="LUNAR_RELAY_MSG"
-                       data="priority=high,ttl=3600s" ;;
-                  esac
-                  
-                  echo "[EARTH-DSN] Uplinking command #$seq_num"
-                  echo "  ├─ Type: $cmd_type"
-                  echo "  ├─ Target: LEO-SAT-01 → Lunar Base"
-                  echo "  ├─ Data: $data"
-                  echo "  ├─ Frequency: 2.2 GHz (S-band)"
-                  echo "  ├─ Power: 20 kW"
-                  echo "  └─ Status: TRANSMITTED ✓"
-                  
-                  # Log to CSV
-                  echo "$current_time,$cmd_type,lunar-base,transmitted" >> /telemetry/uplink_log.csv
-                  
-                  sleep 2
-                done
-                
-                echo "[EARTH-DSN] Uplink window complete. Next window in 90 seconds."
-                echo ""
-              fi
-              
-              # Status updates
-              if [ $((seq_num % 30)) -eq 0 ]; then
-                echo "[EARTH-DSN] === Station Status ==="
-                echo "  ├─ Antenna: Tracking LEO-SAT-01"
-                echo "  ├─ Signal strength: -95 dBm"
-                echo "  ├─ Weather: Clear, Wind 5 km/h"
-                echo "  ├─ Next pass: T+90 seconds"
-                echo "  └─ Queue: $((10 - seq_num % 10)) commands pending"
-                echo ""
-              fi
-              
-              sleep 30
-            done
+      - name: earth-station
+        image: space-dtn:latest
+        imagePullPolicy: Never
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+              - NET_ADMIN
+        env:
+        - name: DTN_NODE_ID
+          value: "earth-station"
+        - name: DTN_NODE_TYPE
+          value: "earth"
+        - name: DTN_PORT
+          value: "4556"
+        - name: DTN_NEIGHBORS
+          value: "satellite:satellite:4556"
         ports:
-        - containerPort: 4224
-          name: mtcp
+        - containerPort: 4556
+          name: dtn
         - containerPort: 8080
-          name: rest
+          name: metrics
         volumeMounts:
         - name: storage
           mountPath: /store
@@ -124,11 +67,11 @@ spec:
           mountPath: /telemetry
         resources:
           requests:
-            memory: "64Mi"
-            cpu: "50m"
-          limits:
             memory: "128Mi"
             cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
       volumes:
       - name: storage
         emptyDir: {}
